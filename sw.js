@@ -38,12 +38,16 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache and caching assets');
-        return Promise.all(
-          urlsToCache.map(url => 
-            cache.add(url).catch(err => console.warn(`Failed to cache ${url}:`, err))
-          )
-        );
+        console.log('Opened cache and caching assets for offline use.');
+        const promises = urlsToCache.map(url => {
+            // Create a 'no-cors' request for third-party resources to prevent CORS errors.
+            // This is essential for caching assets from CDNs during installation.
+            const request = new Request(url, { mode: 'no-cors' });
+            return fetch(request)
+                .then(response => cache.put(url, response))
+                .catch(err => console.warn(`Failed to cache ${url}:`, err));
+        });
+        return Promise.all(promises);
       })
   );
 });
@@ -62,7 +66,7 @@ self.addEventListener('fetch', event => {
           return response;
         }
 
-        // Clone the request because it's a stream and can only be consumed once.
+        // Not in cache, fetch from network
         const fetchRequest = event.request.clone();
 
         return fetch(fetchRequest).then(
@@ -72,17 +76,12 @@ self.addEventListener('fetch', event => {
               return response;
             }
 
-            // Don't cache opaque responses (e.g. from no-cors requests to third party CDNs)
-            // as we can't determine if they are valid.
-            if (response.type !== 'basic' && response.type !== 'cors') {
-                return response;
-            }
-
             // Clone the response because it's a stream and can be consumed once by cache and browser.
             const responseToCache = response.clone();
 
             caches.open(CACHE_NAME)
               .then(cache => {
+                // We now cache all valid GET responses, including 'opaque' ones from CDNs.
                 cache.put(event.request, responseToCache);
               });
 
