@@ -22,6 +22,7 @@ const AppLoader: React.FC = () => (
 const AppContent: React.FC = () => {
     const { user, isLoading, updateUser } = useAuth();
     const [isDbInitialized, setIsDbInitialized] = useState<boolean | null>(null);
+    const [forceLogin, setForceLogin] = useState(false);
 
     useEffect(() => {
         const checkDb = async () => {
@@ -40,8 +41,8 @@ const AppContent: React.FC = () => {
         return <AppLoader />;
     }
 
-    if (!isDbInitialized) {
-        return <SetupPage onSetupComplete={handleSetupComplete} />;
+    if (!isDbInitialized && !forceLogin) {
+        return <SetupPage onSetupComplete={handleSetupComplete} onGoToLogin={() => setForceLogin(true)} />;
     }
 
     if (!user) {

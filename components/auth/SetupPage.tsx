@@ -7,9 +7,11 @@ import Card from '../ui/Card';
 
 interface SetupPageProps {
     onSetupComplete: (user: User) => void;
+    onGoToLogin: () => void;
 }
 
-const SetupPage: React.FC<SetupPageProps> = ({ onSetupComplete }) => {
+// FIX: Restructured the component to correctly contain its state, handlers, and JSX, resolving multiple scope-related errors.
+const SetupPage: React.FC<SetupPageProps> = ({ onSetupComplete, onGoToLogin }) => {
     const [name, setName] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -105,6 +107,14 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSetupComplete }) => {
                             <Button type="submit" className="w-full" disabled={isLoading}>
                                 {isLoading ? 'Setting up...' : 'Complete Setup'}
                             </Button>
+                            <div className="text-center pt-2">
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    Already have an account?{' '}
+                                    <button type="button" onClick={onGoToLogin} className="font-medium text-primary-600 dark:text-primary-400 hover:underline focus:outline-none">
+                                        Login Instead
+                                    </button>
+                                </p>
+                            </div>
                         </form>
                     )}
                 </Card>
