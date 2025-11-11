@@ -16,7 +16,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(() => {
         try {
-            const storedUser = sessionStorage.getItem('user');
+            const storedUser = localStorage.getItem('user');
             return storedUser ? JSON.parse(storedUser) : null;
         } catch {
             return null;
@@ -30,7 +30,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const loggedInUser = await api.loginUser(username, password_hash);
             if (loggedInUser) {
                 setUser(loggedInUser);
-                sessionStorage.setItem('user', JSON.stringify(loggedInUser));
+                localStorage.setItem('user', JSON.stringify(loggedInUser));
             } else {
                 throw new Error("Invalid username or password");
             }
@@ -41,12 +41,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const logout = useCallback(() => {
         setUser(null);
-        sessionStorage.removeItem('user');
+        localStorage.removeItem('user');
     }, []);
 
     const updateUser = useCallback((updatedUser: User) => {
         setUser(updatedUser);
-        sessionStorage.setItem('user', JSON.stringify(updatedUser));
+        localStorage.setItem('user', JSON.stringify(updatedUser));
     }, []);
 
     return (
