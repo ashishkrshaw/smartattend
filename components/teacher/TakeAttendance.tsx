@@ -1,0 +1,279 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+import * as api from '../../services/mockApi';
+import { Student, ClassSection, AttendanceRecord, Holiday } from '../../types';
+import Button from '../ui/Button';
+import Card from '../ui/Card';
+
+declare global {
+    interface Window {
+        faceapi: any;
+    }
+}
+
+const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+
+const TakeAttendance: React.FC = () => {
+    const { user } = useAuth();
+    const [assignedClass, setAssignedClass] = useState<ClassSection | null>(null);
+    const [students, setStudents] = useState<Student[]>([]);
+    const [holidays, setHolidays] = useState<Holiday[]>([]);
+    const [attendance, setAttendance] = useState<Map<string, { status: 'Present' | 'Absent'; method: 'Manual' | 'FaceScan' }>>(new Map());
+    const [isLoading, setIsLoading] = useState(true);
+    const [isCameraOn, setIsCameraOn] = useState(false);
+    const [isTodayHoliday, setIsTodayHoliday] = useState(false);
+    const [statusMessage, setStatusMessage] = useState('Ready to start attendance.');
+    const [modelsLoaded, setModelsLoaded] = useState(false);
+    const [recognizedThisSession, setRecognizedThisSession] = useState(new Set<string>());
+    
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const faceMatcherRef = useRef<any>(null);
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const loadModels = useCallback(async () => {
+        if (modelsLoaded) return;
+        setStatusMessage('Loading recognition models...');
+        try {
+            await Promise.all([
+                window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                window.faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+                window.faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+            ]);
+            setModelsLoaded(true);
+            setStatusMessage('Models loaded. Ready to start camera.');
+        } catch (error) {
+            console.error("Failed to load face-api models", error);
+            setStatusMessage('Error loading models. Please refresh.');
+        }
+    }, [modelsLoaded]);
+
+    const initializeData = useCallback(async () => {
+        if (!user) return;
+        setIsLoading(true);
+        try {
+            const classData = await api.getAssignedClass(user.id);
+            setAssignedClass(classData);
+
+            if (classData) {
+                const [studentsData, holidaysData, attendanceData] = await Promise.all([
+                    api.getStudentsByClass(classData.id),
+                    api.getHolidays(),
+                    api.getAttendance({ classId: classData.id, date: today }),
+                ]);
+                
+                setStudents(studentsData);
+                setHolidays(holidaysData);
+
+                const todayIsHoliday = holidaysData.some(h => h.date === today);
+                setIsTodayHoliday(todayIsHoliday);
+
+                const initialAttendance = new Map();
+                studentsData.forEach(student => {
+                    const record = attendanceData.find(a => a.studentId === student.id);
+                    if (record) {
+                        initialAttendance.set(student.id, { status: record.status, method: record.method });
+                    } else {
+                        initialAttendance.set(student.id, { status: 'Absent', method: 'Manual' });
+                    }
+                });
+                setAttendance(initialAttendance);
+
+                // Prepare face matcher
+                const labeledFaceDescriptors = studentsData
+                    .filter(s => s.faceDescriptor && s.faceDescriptor.length > 0)
+                    .map(s => new window.faceapi.LabeledFaceDescriptors(s.id, [Float32Array.from(s.faceDescriptor!)]));
+                
+                if (labeledFaceDescriptors.length > 0) {
+                    faceMatcherRef.current = new window.faceapi.FaceMatcher(labeledFaceDescriptors, 0.5);
+                }
+            }
+        } catch (error) {
+            console.error("Error initializing data", error);
+            setStatusMessage('Failed to load class data.');
+        } finally {
+            setIsLoading(false);
+            loadModels();
+        }
+    }, [user, today, loadModels]);
+
+    useEffect(() => {
+        initializeData();
+    }, [initializeData]);
+
+    const stopCamera = useCallback(() => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+    }, []);
+
+    const startCamera = async () => {
+        if (isCameraOn) return;
+        setIsCameraOn(true);
+        setStatusMessage('Starting camera...');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+            streamRef.current = stream;
+        } catch (err) {
+            setStatusMessage('Camera access denied. Please check permissions.');
+            setIsCameraOn(false);
+        }
+    };
+    
+    const handleVideoPlay = () => {
+        if (!faceMatcherRef.current) {
+            setStatusMessage("No student faces registered for recognition.");
+            return;
+        }
+        setStatusMessage("Detecting faces...");
+        intervalRef.current = setInterval(async () => {
+            if (videoRef.current && canvasRef.current) {
+                canvasRef.current.innerHTML = window.faceapi.createCanvasFromMedia(videoRef.current);
+                const displaySize = { width: videoRef.current.clientWidth, height: videoRef.current.clientHeight };
+                window.faceapi.matchDimensions(canvasRef.current, displaySize);
+
+                const detections = await window.faceapi.detectAllFaces(videoRef.current, new window.faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
+                const resizedDetections = window.faceapi.resizeResults(detections, displaySize);
+                
+                const results = resizedDetections.map((d: any) => faceMatcherRef.current.findBestMatch(d.descriptor));
+
+                results.forEach((result: any, i: number) => {
+                    const box = resizedDetections[i].detection.box;
+                    const studentId = result.label;
+                    const student = students.find(s => s.id === studentId);
+                    
+                    if (student && studentId !== 'unknown') {
+                        const drawBox = new window.faceapi.draw.DrawBox(box, { label: student.name, boxColor: '#2563eb' });
+                        drawBox.draw(canvasRef.current);
+                        
+                        // Only mark if not already recognized in this session
+                        if (!recognizedThisSession.has(studentId)) {
+                           markAttendance(studentId, 'Present', 'FaceScan');
+                           setRecognizedThisSession(prev => new Set(prev).add(studentId));
+                           setStatusMessage(`Recognized: ${student.name}`);
+                        }
+                    }
+                });
+            }
+        }, 300);
+    };
+
+    const handleCameraToggle = () => {
+        if (isCameraOn) {
+            stopCamera();
+            setIsCameraOn(false);
+            setStatusMessage('Camera off.');
+        } else {
+            setRecognizedThisSession(new Set()); // Reset for new session
+            startCamera();
+        }
+    };
+
+    const markAttendance = (studentId: string, status: 'Present' | 'Absent', method: 'Manual' | 'FaceScan' = 'Manual') => {
+        setAttendance(prev => new Map(prev).set(studentId, { status, method }));
+    };
+
+    const handleSaveAttendance = async () => {
+        setIsLoading(true);
+        const recordsToSave = Array.from(attendance.entries()).map(([studentId, data]) => ({
+            studentId,
+            date: today,
+            status: data.status,
+            method: data.method,
+        }));
+        try {
+            await api.saveAttendance(recordsToSave);
+            setStatusMessage('Attendance saved successfully!');
+        } catch (error) {
+            setStatusMessage('Failed to save attendance.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        return () => stopCamera();
+    }, [stopCamera]);
+    
+    if (isLoading && !modelsLoaded) {
+        return <Card title="Take Attendance"><p>Loading class data...</p></Card>;
+    }
+    
+    if (isTodayHoliday) {
+        const holidayDesc = holidays.find(h => h.date === today)?.description;
+        return (
+            <Card title="Take Attendance">
+                <div className="text-center p-8">
+                    <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">Today is a Holiday!</h3>
+                    <p className="text-gray-600 dark:text-gray-400 mt-2">{holidayDesc}</p>
+                </div>
+            </Card>
+        );
+    }
+    
+    if (!assignedClass) {
+        return <Card title="Take Attendance"><p>You are not assigned to any class. Please contact the administrator.</p></Card>;
+    }
+
+    return (
+        <Card>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                    Attendance for {assignedClass.name} on {new Date(today).toLocaleDateString()}
+                </h2>
+                <div className="flex space-x-2">
+                     <Button onClick={handleCameraToggle} disabled={!modelsLoaded} variant={isCameraOn ? 'danger' : 'primary'}>
+                        {isCameraOn ? 'Stop Camera' : 'Start Face Scan'}
+                    </Button>
+                    <Button onClick={handleSaveAttendance}>Save Attendance</Button>
+                </div>
+            </div>
+
+            <p className="text-center text-sm font-medium p-2 bg-gray-100 dark:bg-gray-700 rounded-md mb-4">{statusMessage}</p>
+            
+            {isCameraOn && (
+                <div className="mb-4 relative w-full aspect-video bg-black rounded-md overflow-hidden">
+                    <video ref={videoRef} onPlay={handleVideoPlay} autoPlay muted playsInline className="w-full h-full object-cover -scale-x-100" />
+                    <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full" />
+                </div>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {students.map(student => {
+                    const att = attendance.get(student.id) || { status: 'Absent', method: 'Manual' };
+                    return (
+                        <div key={student.id} className={`p-3 rounded-lg shadow-sm border-l-4 ${att.status === 'Present' ? 'border-green-500 bg-green-50 dark:bg-green-900/20' : 'border-red-500 bg-red-50 dark:bg-red-900/20'}`}>
+                            <div className="flex items-center space-x-3">
+                                <img src={student.photo || 'https://i.pravatar.cc/300?u='+student.id} alt={student.name} className="w-14 h-14 rounded-full object-cover" />
+                                <div className="flex-grow">
+                                    <p className="font-semibold text-gray-800 dark:text-gray-200">{student.name}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">Roll No: {student.rollNo}</p>
+                                    {att.status === 'Present' && (
+                                        <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                                            Marked via: {att.method}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex flex-col space-y-1">
+                                    <Button size="sm" variant={att.status === 'Present' ? 'primary' : 'secondary'} onClick={() => markAttendance(student.id, 'Present')}>P</Button>
+                                    <Button size="sm" variant={att.status === 'Absent' ? 'danger' : 'secondary'} onClick={() => markAttendance(student.id, 'Absent')}>A</Button>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
+        </Card>
+    );
+};
+
+export default TakeAttendance;

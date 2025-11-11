@@ -1,0 +1,33 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <!-- Main background circle -->
+    <circle cx="256" cy="256" r="256" fill="#BFDBFE"/>
+    <!-- Inner shadow/highlight circle -->
+    <circle cx="256" cy="256" r="220" fill="#93C5FD" opacity="0.5"/>
+    
+    <!-- Person's body/suit -->
+    <path d="M160 320 L256 420 L352 320 L320 320 A64 64 0 0 0 256 256 A64 64 0 0 0 192 320 Z" fill="#1E3A8A"/>
+    
+    <!-- Shirt and Tie -->
+    <path d="M256 280 L290 320 L222 320 Z" fill="#FFFFFF"/>
+    <path d="M256 290 L270 325 L242 325 Z" fill="#DC2626"/>
+
+    <!-- Head and Neck -->
+    <path d="M232 260 L280 260 L280 290 L232 290 Z" fill="#fed7aa"/>
+    <circle cx="256" cy="210" r="70" fill="#fed7aa"/>
+
+    <!-- Hair -->
+    <path d="M196 210 A60 60 0 0 1 316 210 Q 316 140 256 140 Q 196 140 196 210 Z" fill="#c05621"/>
+
+    <!-- Face Scanner Elements -->
+    <g stroke="#ef4444" stroke-width="12" fill="none" stroke-linecap="round">
+        <!-- Brackets -->
+        <path d="M150 180 L150 160 L170 160"/>
+        <path d="M362 180 L362 160 L342 160"/>
+        <path d="M150 280 L150 300 L170 300"/>
+        <path d="M362 280 L362 300 L342 300"/>
+        <!-- Horizontal Line -->
+        <line x1="140" y1="230" x2="372" y2="230"/>
+        <!-- Dot on line -->
+        <circle cx="200" cy="230" r="4" fill="#ef4444" stroke="none"/>
+    </g>
+</svg>

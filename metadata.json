@@ -1,0 +1,7 @@
+{
+  "name": "Smart School Attendance",
+  "description": "A multitenant Smart Attendance web application for schools. Principals manage schools, teachers, and holidays. Teachers manage classes, students, and take attendance using simulated face recognition.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
