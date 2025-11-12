@@ -25,6 +25,7 @@ const TakeAttendance: React.FC = () => {
     const [statusMessage, setStatusMessage] = useState('Ready to start attendance.');
     const [modelsLoaded, setModelsLoaded] = useState(false);
     const [recognizedThisSession, setRecognizedThisSession] = useState(new Set<string>());
+    const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
     
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -118,7 +119,7 @@ const TakeAttendance: React.FC = () => {
         setIsCameraOn(true);
         setStatusMessage('Starting camera...');
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
             }
@@ -175,6 +176,27 @@ const TakeAttendance: React.FC = () => {
         } else {
             setRecognizedThisSession(new Set()); // Reset for new session
             startCamera();
+        }
+    };
+
+    const toggleCamera = async () => {
+        const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
+        setFacingMode(newFacingMode);
+        
+        if (isCameraOn) {
+            // Restart camera with new facing mode
+            stopCamera();
+            setStatusMessage('Switching camera...');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: newFacingMode } });
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                }
+                streamRef.current = stream;
+                setStatusMessage('Camera switched. Detecting faces...');
+            } catch (err) {
+                setStatusMessage('Failed to switch camera.');
+            }
         }
     };
 
@@ -244,6 +266,19 @@ const TakeAttendance: React.FC = () => {
                 <div className="mb-4 relative w-full aspect-video bg-black rounded-md overflow-hidden">
                     <video ref={videoRef} onPlay={handleVideoPlay} autoPlay muted playsInline className="w-full h-full object-cover -scale-x-100" />
                     <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full" />
+                    <button
+                        type="button"
+                        onClick={toggleCamera}
+                        className="absolute top-2 right-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-3 rounded-full transition-all z-10"
+                        title="Switch Camera"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </button>
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black bg-opacity-50 text-white text-xs px-3 py-1 rounded">
+                        Using: {facingMode === 'user' ? 'Front' : 'Rear'} Camera
+                    </div>
                 </div>
             )}
             

@@ -39,6 +39,7 @@ const LoginPage: React.FC = () => {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required
+                            autoComplete="username"
                         />
                         <Input
                             label="Password"
@@ -47,6 +48,7 @@ const LoginPage: React.FC = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
+                            autoComplete="current-password"
                         />
                         <Button type="submit" className="w-full" disabled={isLoading}>
                             {isLoading ? 'Logging in...' : 'Login'}

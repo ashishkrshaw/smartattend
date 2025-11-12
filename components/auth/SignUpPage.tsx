@@ -64,8 +64,8 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onSwitchToLogin }) => {
                         <Input name="contactEmail" label="Contact Email" type="email" value={formData.contactEmail} onChange={handleChange} required />
                         <Input name="contactPhone" label="Contact Phone" type="tel" value={formData.contactPhone} onChange={handleChange} required />
                         <hr className="my-2" />
-                        <Input name="password" label="Password" type="password" value={formData.password} onChange={handleChange} required />
-                        <Input name="confirmPassword" label="Confirm Password" type="password" value={formData.confirmPassword} onChange={handleChange} required />
+                        <Input name="password" label="Password" type="password" value={formData.password} onChange={handleChange} required autoComplete="new-password" />
+                        <Input name="confirmPassword" label="Confirm Password" type="password" value={formData.confirmPassword} onChange={handleChange} required autoComplete="new-password" />
                         <Button type="submit" className="w-full" disabled={isLoading}>
                             {isLoading ? 'Registering...' : 'Register'}
                         </Button>

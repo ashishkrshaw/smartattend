@@ -94,6 +94,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSetupComplete, onGoToLogin }) =
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
+                                autoComplete="new-password"
                             />
                              <Input
                                 label="Confirm Password"
@@ -102,6 +103,7 @@ const SetupPage: React.FC<SetupPageProps> = ({ onSetupComplete, onGoToLogin }) =
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
                                 required
+                                autoComplete="new-password"
                             />
 
                             <Button type="submit" className="w-full" disabled={isLoading}>

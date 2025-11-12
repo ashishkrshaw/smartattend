@@ -28,6 +28,7 @@ const StudentPhotoCapture: React.FC<StudentPhotoCaptureProps> = ({ onPhotoCaptur
     const [detectionStatus, setDetectionStatus] = useState<'idle' | 'detecting' | 'detected' | 'error'>('idle');
     const [statusMessage, setStatusMessage] = useState('Photo Preview');
     const [modelsLoaded, setModelsLoaded] = useState(false);
+    const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
     
     const videoRef = useRef<HTMLVideoElement>(null);
     const streamRef = useRef<MediaStream | null>(null);
@@ -70,7 +71,7 @@ const StudentPhotoCapture: React.FC<StudentPhotoCaptureProps> = ({ onPhotoCaptur
             if (isCaptureModalOpen) {
                 try {
                     stopCamera(); // Ensure previous stream is stopped
-                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
                     if (videoRef.current) {
                         videoRef.current.srcObject = stream;
                     }
@@ -87,7 +88,7 @@ const StudentPhotoCapture: React.FC<StudentPhotoCaptureProps> = ({ onPhotoCaptur
         return () => {
             stopCamera();
         };
-    }, [isCaptureModalOpen, stopCamera]);
+    }, [isCaptureModalOpen, facingMode, stopCamera]);
 
 
     const processImageForDescriptor = async (imageSrc: string) => {
@@ -168,6 +169,10 @@ const StudentPhotoCapture: React.FC<StudentPhotoCaptureProps> = ({ onPhotoCaptur
     const handleUploadClick = () => {
         fileInputRef.current?.click();
     };
+
+    const toggleCamera = () => {
+        setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+    };
     
     return (
         <div>
@@ -213,8 +218,18 @@ const StudentPhotoCapture: React.FC<StudentPhotoCaptureProps> = ({ onPhotoCaptur
                         <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black bg-opacity-50 text-white text-sm px-3 py-1 rounded">
                             Position face in the frame
                         </div>
+                        <button
+                            type="button"
+                            onClick={toggleCamera}
+                            className="absolute top-2 right-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white p-2 rounded-full transition-all"
+                            title="Switch Camera"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </button>
                     </div>
-                    <div className="flex justify-center">
+                    <div className="flex justify-center gap-3">
                          <Button type="button" onClick={capturePhotoAndClose} size="lg">
                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
