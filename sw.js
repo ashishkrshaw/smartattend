@@ -1,5 +1,4 @@
-const CACHE_NAME = 'smart-attendance-cache-v2';
-const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+const CACHE_NAME = 'smart-attendance-cache-v3-offline';
 
 // This list includes the app shell, key CDN assets, and all face-api models
 // required for offline face detection and recognition.
@@ -10,7 +9,6 @@ const urlsToCache = [
   '/manifest.json',
   '/logo.svg',
   '/icon.svg',
-  '/index.tsx', // Will be cached on first load regardless, but good to have
 
   // Key CDN assets
   'https://cdn.tailwindcss.com',
@@ -19,17 +17,17 @@ const urlsToCache = [
   'https://aistudiocdn.com/react@^19.2.0',
   'https://aistudiocdn.com/react-dom@^19.2.0',
   
-  // Face-API Models (critical for offline functionality)
-  `${MODEL_URL}/tiny_face_detector_model-weights_manifest.json`,
-  `${MODEL_URL}/tiny_face_detector_model-shard1`,
-  `${MODEL_URL}/face_landmark_68_model-weights_manifest.json`,
-  `${MODEL_URL}/face_landmark_68_model-shard1`,
-  `${MODEL_URL}/face_recognition_model-weights_manifest.json`,
-  `${MODEL_URL}/face_recognition_model-shard1`,
-  `${MODEL_URL}/face_recognition_model-shard2`,
-  `${MODEL_URL}/ssd_mobilenetv1_model-weights_manifest.json`,
-  `${MODEL_URL}/ssd_mobilenetv1_model-shard1`,
-  `${MODEL_URL}/ssd_mobilenetv1_model-shard2`,
+  // Face-API Models - Now hosted locally for true offline functionality
+  '/models/tiny_face_detector_model-weights_manifest.json',
+  '/models/tiny_face_detector_model-shard1',
+  '/models/face_landmark_68_model-weights_manifest.json',
+  '/models/face_landmark_68_model-shard1',
+  '/models/face_recognition_model-weights_manifest.json',
+  '/models/face_recognition_model-shard1',
+  '/models/face_recognition_model-shard2',
+  '/models/ssd_mobilenetv1_model-weights_manifest.json',
+  '/models/ssd_mobilenetv1_model-shard1',
+  '/models/ssd_mobilenetv1_model-shard2',
 ];
 
 

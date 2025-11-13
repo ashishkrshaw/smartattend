@@ -11,7 +11,7 @@ declare global {
     }
 }
 
-const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+const MODEL_URL = '/models';
 
 const TakeAttendance: React.FC = () => {
     const { user } = useAuth();
@@ -39,11 +39,11 @@ const TakeAttendance: React.FC = () => {
         if (modelsLoaded) return;
         setStatusMessage('Loading recognition models...');
         try {
+            // Load only necessary models - skip ssdMobilenetv1 for better performance
             await Promise.all([
                 window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
                 window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
                 window.faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
-                window.faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
             ]);
             setModelsLoaded(true);
             setStatusMessage('Models loaded. Ready to start camera.');
@@ -135,16 +135,31 @@ const TakeAttendance: React.FC = () => {
             setStatusMessage("No student faces registered for recognition.");
             return;
         }
+        
+        // Setup canvas once
+        const canvas = window.faceapi.createCanvasFromMedia(videoRef.current!);
+        canvasRef.current!.innerHTML = '';
+        canvasRef.current!.appendChild(canvas);
+        
         setStatusMessage("Detecting faces...");
         intervalRef.current = setInterval(async () => {
-            if (videoRef.current && canvasRef.current) {
-                canvasRef.current.innerHTML = window.faceapi.createCanvasFromMedia(videoRef.current);
+            if (videoRef.current && canvas) {
                 const displaySize = { width: videoRef.current.clientWidth, height: videoRef.current.clientHeight };
-                window.faceapi.matchDimensions(canvasRef.current, displaySize);
-
-                const detections = await window.faceapi.detectAllFaces(videoRef.current, new window.faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptors();
-                const resizedDetections = window.faceapi.resizeResults(detections, displaySize);
+                window.faceapi.matchDimensions(canvas, displaySize);
                 
+                // Clear previous drawings
+                const ctx = canvas.getContext('2d');
+                if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Use only TinyFaceDetector for speed (skip ssdMobilenetv1)
+                const detections = await window.faceapi
+                    .detectAllFaces(videoRef.current, new window.faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
+                    .withFaceLandmarks()
+                    .withFaceDescriptors();
+                
+                if (detections.length === 0) return;
+                
+                const resizedDetections = window.faceapi.resizeResults(detections, displaySize);
                 const results = resizedDetections.map((d: any) => faceMatcherRef.current.findBestMatch(d.descriptor));
 
                 results.forEach((result: any, i: number) => {
@@ -153,19 +168,23 @@ const TakeAttendance: React.FC = () => {
                     const student = students.find(s => s.id === studentId);
                     
                     if (student && studentId !== 'unknown') {
-                        const drawBox = new window.faceapi.draw.DrawBox(box, { label: student.name, boxColor: '#2563eb' });
-                        drawBox.draw(canvasRef.current);
+                        // Draw box with student name
+                        const drawBox = new window.faceapi.draw.DrawBox(box, { 
+                            label: `${student.name} ${recognizedThisSession.has(studentId) ? '✓' : ''}`,
+                            boxColor: recognizedThisSession.has(studentId) ? '#10b981' : '#2563eb' 
+                        });
+                        drawBox.draw(canvas);
                         
                         // Only mark if not already recognized in this session
                         if (!recognizedThisSession.has(studentId)) {
                            markAttendance(studentId, 'Present', 'FaceScan');
                            setRecognizedThisSession(prev => new Set(prev).add(studentId));
-                           setStatusMessage(`Recognized: ${student.name}`);
+                           setStatusMessage(`✓ Recognized: ${student.name}`);
                         }
                     }
                 });
             }
-        }, 300);
+        }, 600); // Increased from 300ms to 600ms for better performance
     };
 
     const handleCameraToggle = () => {

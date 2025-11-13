@@ -14,7 +14,7 @@ interface StudentPhotoCaptureProps {
     initialImage?: string;
 }
 
-const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+const MODEL_URL = '/models';
 
 const loadFaceApiModels = async () => {
     await window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);

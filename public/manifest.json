@@ -1,7 +1,7 @@
 {
   "short_name": "Smart Attend",
   "name": "Smart School Attendance",
-  "description": "An offline-first attendance application for teachers using face recognition.",
+  "description": "Offline-first attendance app with face recognition. Works without internet after installation.",
   "icons": [
     {
       "src": "/icon.svg",
@@ -20,8 +20,11 @@
       "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
+  "orientation": "any",
   "theme_color": "#2563eb",
-  "background_color": "#f1f5f9"
+  "background_color": "#f1f5f9",
+  "categories": ["education", "productivity"],
+  "prefer_related_applications": false
 }
