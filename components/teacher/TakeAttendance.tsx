@@ -210,6 +210,11 @@ const TakeAttendance: React.FC = () => {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: newFacingMode } });
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
+                    // Wait for video to be ready and restart detection
+                    videoRef.current.onloadedmetadata = () => {
+                        videoRef.current?.play();
+                        handleVideoPlay();
+                    };
                 }
                 streamRef.current = stream;
                 setStatusMessage('Camera switched. Detecting faces...');
