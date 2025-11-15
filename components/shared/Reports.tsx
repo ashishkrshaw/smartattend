@@ -334,14 +334,24 @@ const Reports: React.FC = () => {
             {renderFilters()}
             
             {reportGenerated && (
-                <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
-                    <div className="p-1 bg-gray-200 dark:bg-gray-700 rounded-lg flex space-x-1">
-                        <Button size="sm" variant={currentView === 'register' ? 'primary' : 'secondary'} onClick={() => setCurrentView('register')}>Register View</Button>
-                        <Button size="sm" variant={currentView === 'insights' ? 'primary' : 'secondary'} onClick={() => setCurrentView('insights')}>Insights View</Button>
+                <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mb-4 gap-3">
+                    <div className="p-1 bg-gray-200 dark:bg-gray-700 rounded-lg flex space-x-1 w-full sm:w-auto">
+                        <Button size="sm" variant={currentView === 'register' ? 'primary' : 'secondary'} onClick={() => setCurrentView('register')} className="flex-1 sm:flex-none">Register View</Button>
+                        <Button size="sm" variant={currentView === 'insights' ? 'primary' : 'secondary'} onClick={() => setCurrentView('insights')} className="flex-1 sm:flex-none">Insights View</Button>
                     </div>
-                    <div className="flex space-x-2">
-                        <Button onClick={() => exportData('csv')} variant="secondary">Export CSV</Button>
-                        <Button onClick={() => exportData('pdf')} variant="secondary">Export PDF</Button>
+                    <div className="flex flex-col xs:flex-row space-y-2 xs:space-y-0 xs:space-x-2 w-full sm:w-auto">
+                        <Button onClick={() => exportData('csv')} variant="secondary" className="w-full xs:w-auto">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Export CSV
+                        </Button>
+                        <Button onClick={() => exportData('pdf')} variant="secondary" className="w-full xs:w-auto">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            Export PDF
+                        </Button>
                     </div>
                 </div>
             )}
