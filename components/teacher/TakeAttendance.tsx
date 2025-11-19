@@ -11,7 +11,7 @@ declare global {
     }
 }
 
-const MODEL_URL = '/models';
+const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
 
 const TakeAttendance: React.FC = () => {
     const { user } = useAuth();
